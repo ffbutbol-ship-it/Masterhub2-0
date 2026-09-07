@@ -1,0 +1,1083 @@
+--========================================================--
+--                    MASTER HUB                         --
+--   VISUAL UI + FUNCIONAL + ESP + AIMBOT + FARM         --
+--   (Aimbot universal + FOV RGB)                        --
+--========================================================--
+
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local Lighting = game:GetService("Lighting")
+local Workspace = game:GetService("Workspace")
+local Camera = Workspace.CurrentCamera
+local Player = Players.LocalPlayer
+local VirtualInputManager = game:GetService("VirtualInputManager")
+
+-- Biblioteca Drawing (necessária para ESP e Aimbot)
+local DrawingLib = Drawing
+if not DrawingLib then
+    warn("MASTER HUB: Biblioteca Drawing não encontrada. ESP e Aimbot não funcionarão.")
+end
+
+--========================================================--
+--                     GUI PRINCIPAL                     --
+--========================================================--
+
+local Gui = Instance.new("ScreenGui")
+Gui.Name = "MASTER_HUB"
+Gui.ResetOnSpawn = false
+Gui.Parent = Player:WaitForChild("PlayerGui")
+
+--========================================================--
+--                    CONFIGURAÇÕES                      --
+--========================================================--
+
+local CurrentLanguage = "Português BR"
+local ToggleStates = {}
+local FOVSize = 200
+local AimbotEnabled = false
+local FOVCircle = nil
+local NoclipConnection = nil
+local RGBConnection = nil
+local FarmConnection = nil
+
+local function GetState(Name)
+    if ToggleStates[Name] == nil then ToggleStates[Name] = false end
+    return ToggleStates[Name]
+end
+
+local function ChangeState(Name)
+    ToggleStates[Name] = not GetState(Name)
+    return ToggleStates[Name]
+end
+
+--========================================================--
+--                       IDIOMAS                         --
+--========================================================--
+
+local Languages = {
+    ["Português BR"] = {
+        Main = "PRINCIPAL", Esp = "ESP", Combat = "COMBATE", Player = "JOGADOR",
+        Visual = "VISUAL", Settings = "CONFIGURAÇÕES", Discord = "DISCORD", Farm = "FARM"
+    },
+    ["English"] = {
+        Main = "MAIN", Esp = "ESP", Combat = "COMBAT", Player = "PLAYER",
+        Visual = "VISUAL", Settings = "SETTINGS", Discord = "DISCORD", Farm = "FARM"
+    },
+    ["日本語"] = {
+        Main = "メイン", Esp = "ESP", Combat = "戦闘", Player = "プレイヤー",
+        Visual = "ビジュアル", Settings = "設定", Discord = "ディスコード", Farm = "ファーム"
+    },
+    ["Español"] = {
+        Main = "PRINCIPAL", Esp = "ESP", Combat = "COMBATE", Player = "JUGADOR",
+        Visual = "VISUAL", Settings = "AJUSTES", Discord = "DISCORD", Farm = "FARM"
+    }
+}
+
+--========================================================--
+--                 NOTIFICAÇÃO INICIAL                   --
+--========================================================--
+
+local Notification = Instance.new("Frame")
+Notification.Parent = Gui
+Notification.Size = UDim2.fromOffset(310, 65)
+Notification.Position = UDim2.new(0.5, -155, 0, -80)
+Notification.BackgroundColor3 = Color3.fromRGB(10, 14, 23)
+Instance.new("UICorner", Notification).CornerRadius = UDim.new(0, 12)
+local NotificationStroke = Instance.new("UIStroke")
+NotificationStroke.Parent = Notification
+NotificationStroke.Color = Color3.fromRGB(30, 140, 255)
+NotificationStroke.Thickness = 2
+local NotificationText = Instance.new("TextLabel")
+NotificationText.Parent = Notification
+NotificationText.Size = UDim2.fromScale(1, 1)
+NotificationText.BackgroundTransparency = 1
+NotificationText.Text = "✓  MASTER HUB EXECUTADO"
+NotificationText.TextColor3 = Color3.fromRGB(80, 180, 255)
+NotificationText.TextSize = 16
+NotificationText.Font = Enum.Font.GothamBold
+
+TweenService:Create(Notification, TweenInfo.new(0.45, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+    Position = UDim2.new(0.5, -155, 0, 25)
+}):Play()
+
+task.delay(3, function()
+    TweenService:Create(Notification, TweenInfo.new(0.4), {
+        Position = UDim2.new(0.5, -155, 0, -80)
+    }):Play()
+    task.wait(0.5)
+    if Notification then Notification:Destroy() end
+end)
+
+--========================================================--
+--              BOLINHA FLUTUANTE COM TEXTURA            --
+--========================================================--
+
+local Bubble = Instance.new("ImageButton")
+Bubble.Parent = Gui
+Bubble.Size = UDim2.fromOffset(60, 60)
+Bubble.Position = UDim2.new(0, 20, 0.5, -30)
+Bubble.Image = "rbxassetid://103535793395765"
+Bubble.BackgroundColor3 = Color3.fromRGB(20, 120, 255)
+Bubble.AutoButtonColor = false
+Bubble.ScaleType = Enum.ScaleType.Crop
+Instance.new("UICorner", Bubble).CornerRadius = UDim.new(1, 0)
+local BubbleStroke = Instance.new("UIStroke")
+BubbleStroke.Parent = Bubble
+BubbleStroke.Color = Color3.fromRGB(90, 190, 255)
+BubbleStroke.Thickness = 3
+
+--========================================================--
+--                       PAINEL                          --
+--========================================================--
+
+local Panel = Instance.new("Frame")
+Panel.Parent = Gui
+Panel.Size = UDim2.fromOffset(530, 370)
+Panel.Position = UDim2.new(0.5, -265, 0.5, -185)
+Panel.BackgroundColor3 = Color3.fromRGB(8, 11, 18)
+Panel.Visible = false
+Instance.new("UICorner", Panel).CornerRadius = UDim.new(0, 14)
+local PanelStroke = Instance.new("UIStroke")
+PanelStroke.Parent = Panel
+PanelStroke.Color = Color3.fromRGB(30, 140, 255)
+PanelStroke.Thickness = 2
+
+local Title = Instance.new("TextLabel")
+Title.Parent = Panel
+Title.Size = UDim2.new(1, -100, 0, 55)
+Title.Position = UDim2.fromOffset(18, 2)
+Title.BackgroundTransparency = 1
+Title.Text = "MASTER HUB"
+Title.TextColor3 = Color3.fromRGB(80, 180, 255)
+Title.TextSize = 23
+Title.Font = Enum.Font.GothamBold
+Title.TextXAlignment = Enum.TextXAlignment.Left
+
+local Status = Instance.new("TextLabel")
+Status.Parent = Panel
+Status.Size = UDim2.fromOffset(110, 25)
+Status.Position = UDim2.new(1, -150, 0, 18)
+Status.BackgroundTransparency = 1
+Status.Text = "● ONLINE"
+Status.TextColor3 = Color3.fromRGB(40, 220, 110)
+Status.TextSize = 12
+Status.Font = Enum.Font.GothamBold
+
+local Close = Instance.new("TextButton")
+Close.Parent = Panel
+Close.Size = UDim2.fromOffset(34, 34)
+Close.Position = UDim2.new(1, -43, 0, 8)
+Close.BackgroundColor3 = Color3.fromRGB(35, 38, 50)
+Close.Text = "×"
+Close.TextColor3 = Color3.new(1, 1, 1)
+Close.TextSize = 22
+Close.Font = Enum.Font.GothamBold
+Instance.new("UICorner", Close).CornerRadius = UDim.new(0, 8)
+
+local TabFrame = Instance.new("Frame")
+TabFrame.Parent = Panel
+TabFrame.Size = UDim2.fromOffset(135, 280)
+TabFrame.Position = UDim2.fromOffset(10, 65)
+TabFrame.BackgroundColor3 = Color3.fromRGB(14, 17, 27)
+Instance.new("UICorner", TabFrame).CornerRadius = UDim.new(0, 10)
+local TabLayout = Instance.new("UIListLayout")
+TabLayout.Parent = TabFrame
+TabLayout.Padding = UDim.new(0, 3)
+TabLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+local Content = Instance.new("Frame")
+Content.Parent = Panel
+Content.Size = UDim2.new(1, -160, 1, -75)
+Content.Position = UDim2.fromOffset(150, 65)
+Content.BackgroundColor3 = Color3.fromRGB(14, 17, 27)
+Instance.new("UICorner", Content).CornerRadius = UDim.new(0, 10)
+
+local TabNames = {"MAIN", "ESP", "COMBAT", "PLAYER", "VISUAL", "FARM", "SETTINGS", "DISCORD"}
+
+local function GetTabName(Tab)
+    local L = Languages[CurrentLanguage]
+    if Tab == "MAIN" then return L.Main
+    elseif Tab == "ESP" then return L.Esp
+    elseif Tab == "COMBAT" then return L.Combat
+    elseif Tab == "PLAYER" then return L.Player
+    elseif Tab == "VISUAL" then return L.Visual
+    elseif Tab == "SETTINGS" then return L.Settings
+    elseif Tab == "DISCORD" then return L.Discord
+    elseif Tab == "FARM" then return L.Farm end
+    return Tab
+end
+
+local function ClearContent()
+    for _, obj in ipairs(Content:GetChildren()) do obj:Destroy() end
+end
+
+--========================================================--
+--             SISTEMA DE ESP (Drawing)                  --
+--========================================================--
+
+local ESPObjects = {}
+local Bones = {
+    {"Head", "UpperTorso"}, {"UpperTorso", "LowerTorso"}, {"UpperTorso", "LeftUpperArm"},
+    {"LeftUpperArm", "LeftLowerArm"}, {"LeftLowerArm", "LeftHand"}, {"UpperTorso", "RightUpperArm"},
+    {"RightUpperArm", "RightLowerArm"}, {"RightLowerArm", "RightHand"}, {"LowerTorso", "LeftUpperLeg"},
+    {"LeftUpperLeg", "LeftLowerLeg"}, {"LeftLowerLeg", "LeftFoot"}, {"LowerTorso", "RightUpperLeg"},
+    {"RightUpperLeg", "RightLowerLeg"}, {"RightLowerLeg", "RightFoot"}
+}
+
+-- Função genérica: considera inimigo se times diferentes OU se não houver times
+local function IsEnemy(targetPlayer)
+    local myTeam = Player.Team
+    local otherTeam = targetPlayer.Team
+    if myTeam and otherTeam then
+        return myTeam ~= otherTeam
+    end
+    -- Se algum não tem time, considera todos como inimigos (jogos sem equipe)
+    return true
+end
+
+-- Função estrita: usada no Farm, só considera inimigo se ambos têm time e são diferentes
+local function IsEnemyStrict(targetPlayer)
+    local myTeam = Player.Team
+    local otherTeam = targetPlayer.Team
+    if myTeam and otherTeam then
+        return myTeam ~= otherTeam
+    end
+    return false
+end
+
+local function CreateESPForPlayer(targetPlayer)
+    if not DrawingLib then return end
+    local esp = {}
+
+    esp.Line = DrawingLib.new("Line")
+    esp.Line.Color = Color3.fromRGB(255, 255, 0)
+    esp.Line.Thickness = 2
+    esp.Line.Visible = false
+
+    esp.BoxLines = {}
+    for i = 1, 4 do
+        local line = DrawingLib.new("Line")
+        line.Color = Color3.fromRGB(255, 0, 0)
+        line.Thickness = 2
+        line.Visible = false
+        esp.BoxLines[i] = line
+    end
+
+    esp.HealthBg = DrawingLib.new("Line")
+    esp.HealthBg.Color = Color3.fromRGB(50, 50, 50)
+    esp.HealthBg.Thickness = 4
+    esp.HealthBg.Visible = false
+    esp.HealthFill = DrawingLib.new("Line")
+    esp.HealthFill.Color = Color3.fromRGB(0, 255, 0)
+    esp.HealthFill.Thickness = 4
+    esp.HealthFill.Visible = false
+
+    esp.NameText = DrawingLib.new("Text")
+    esp.NameText.Text = targetPlayer.Name
+    esp.NameText.Size = 14
+    esp.NameText.Center = true
+    esp.NameText.Outline = true
+    esp.NameText.Color = Color3.fromRGB(255, 255, 255)
+    esp.NameText.Visible = false
+
+    esp.SkeletonLines = {}
+    for i = 1, #Bones do
+        local line = DrawingLib.new("Line")
+        line.Color = Color3.fromRGB(0, 255, 255)
+        line.Thickness = 1
+        line.Visible = false
+        esp.SkeletonLines[i] = line
+    end
+
+    ESPObjects[targetPlayer] = esp
+    return esp
+end
+
+local function RemoveESPForPlayer(targetPlayer)
+    local esp = ESPObjects[targetPlayer]
+    if not esp then return end
+    if esp.Line then esp.Line:Remove() end
+    for _, l in ipairs(esp.BoxLines or {}) do if l then l:Remove() end end
+    if esp.HealthBg then esp.HealthBg:Remove() end
+    if esp.HealthFill then esp.HealthFill:Remove() end
+    if esp.NameText then esp.NameText:Remove() end
+    for _, l in ipairs(esp.SkeletonLines or {}) do if l then l:Remove() end end
+    ESPObjects[targetPlayer] = nil
+end
+
+local function UpdateESP()
+    if not DrawingLib then return end
+    local viewportSize = Camera.ViewportSize
+    local screenCenter = Vector2.new(viewportSize.X / 2, viewportSize.Y / 2)
+
+    local rgbColor = nil
+    if GetState("RGB GERAL") then
+        rgbColor = Color3.fromHSV((tick() % 5) / 5, 1, 1)
+    end
+
+    for player, esp in pairs(ESPObjects) do
+        local character = player.Character
+        if not character or not character:FindFirstChild("HumanoidRootPart") then
+            esp.Line.Visible = false
+            for _, l in ipairs(esp.BoxLines) do l.Visible = false end
+            esp.HealthBg.Visible = false
+            esp.HealthFill.Visible = false
+            esp.NameText.Visible = false
+            for _, l in ipairs(esp.SkeletonLines) do l.Visible = false end
+        else
+            local root = character.HumanoidRootPart
+            local head = character:FindFirstChild("Head")
+            local humanoid = character:FindFirstChildOfClass("Humanoid")
+            if not humanoid or not root then
+                esp.Line.Visible = false
+                for _, l in ipairs(esp.BoxLines) do l.Visible = false end
+                esp.HealthBg.Visible = false
+                esp.HealthFill.Visible = false
+                esp.NameText.Visible = false
+                for _, l in ipairs(esp.SkeletonLines) do l.Visible = false end
+            else
+                local rootPos, onScreen = Camera:WorldToViewportPoint(root.Position)
+                local headPos = head and Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 0.5, 0)) or rootPos
+                local footPos = Camera:WorldToViewportPoint(root.Position - Vector3.new(0, 3, 0))
+
+                if not onScreen then
+                    esp.Line.Visible = false
+                    for _, l in ipairs(esp.BoxLines) do l.Visible = false end
+                    esp.HealthBg.Visible = false
+                    esp.HealthFill.Visible = false
+                    esp.NameText.Visible = false
+                    for _, l in ipairs(esp.SkeletonLines) do l.Visible = false end
+                else
+                    -- Line (tracer)
+                    if GetState("ESP LINE") then
+                        esp.Line.From = Vector2.new(rootPos.X, rootPos.Y)
+                        esp.Line.To = screenCenter
+                        esp.Line.Color = rgbColor or Color3.fromRGB(255, 255, 0)
+                        esp.Line.Visible = true
+                    else
+                        esp.Line.Visible = false
+                    end
+
+                    -- Box
+                    if GetState("ESP BOX") then
+                        local height = math.abs(footPos.Y - headPos.Y)
+                        local width = height * 0.65
+                        local x = rootPos.X - width / 2
+                        local y = headPos.Y
+                        local topLeft = Vector2.new(x, y)
+                        local topRight = Vector2.new(x + width, y)
+                        local bottomLeft = Vector2.new(x, y + height)
+                        local bottomRight = Vector2.new(x + width, y + height)
+
+                        local boxColor = rgbColor or (IsEnemy(player) and Color3.fromRGB(255, 0, 0) or Color3.fromRGB(0, 120, 255))
+                        esp.BoxLines[1].From = topLeft
+                        esp.BoxLines[1].To = topRight
+                        esp.BoxLines[2].From = topRight
+                        esp.BoxLines[2].To = bottomRight
+                        esp.BoxLines[3].From = bottomRight
+                        esp.BoxLines[3].To = bottomLeft
+                        esp.BoxLines[4].From = bottomLeft
+                        esp.BoxLines[4].To = topLeft
+                        for _, l in ipairs(esp.BoxLines) do
+                            l.Color = boxColor
+                            l.Visible = true
+                        end
+                    else
+                        for _, l in ipairs(esp.BoxLines) do l.Visible = false end
+                    end
+
+                    -- Nome
+                    if GetState("ESP NOME") then
+                        esp.NameText.Position = Vector2.new(rootPos.X, headPos.Y - 20)
+                        esp.NameText.Color = rgbColor or Color3.fromRGB(255, 255, 255)
+                        esp.NameText.Visible = true
+                    else
+                        esp.NameText.Visible = false
+                    end
+
+                    -- Barra de vida (vertical, à esquerda do box)
+                    if GetState("ESP VIDA (BARRA)") then
+                        local healthPercent = humanoid.Health / humanoid.MaxHealth
+                        local boxHeight = math.abs(footPos.Y - headPos.Y)
+                        local boxWidth = boxHeight * 0.65
+                        local boxLeft = rootPos.X - boxWidth / 2
+                        local barX = boxLeft - 6
+                        local barTop = headPos.Y
+                        local barBottom = footPos.Y
+
+                        esp.HealthBg.From = Vector2.new(barX, barBottom)
+                        esp.HealthBg.To = Vector2.new(barX, barTop)
+                        esp.HealthBg.Visible = true
+
+                        local fillY = barBottom - (barBottom - barTop) * healthPercent
+                        esp.HealthFill.From = Vector2.new(barX, barBottom)
+                        esp.HealthFill.To = Vector2.new(barX, fillY)
+                        esp.HealthFill.Color = rgbColor or Color3.fromHSV(healthPercent * 0.33, 1, 1)
+                        esp.HealthFill.Visible = true
+                    else
+                        esp.HealthBg.Visible = false
+                        esp.HealthFill.Visible = false
+                    end
+
+                    -- Esqueleto
+                    if GetState("ESP SKELETO") then
+                        for i, bone in ipairs(Bones) do
+                            local part1 = character:FindFirstChild(bone[1])
+                            local part2 = character:FindFirstChild(bone[2])
+                            if part1 and part2 then
+                                local p1, on1 = Camera:WorldToViewportPoint(part1.Position)
+                                local p2, on2 = Camera:WorldToViewportPoint(part2.Position)
+                                if on1 and on2 then
+                                    esp.SkeletonLines[i].From = Vector2.new(p1.X, p1.Y)
+                                    esp.SkeletonLines[i].To = Vector2.new(p2.X, p2.Y)
+                                    esp.SkeletonLines[i].Color = rgbColor or Color3.fromRGB(0, 255, 255)
+                                    esp.SkeletonLines[i].Visible = true
+                                else
+                                    esp.SkeletonLines[i].Visible = false
+                                end
+                            else
+                                esp.SkeletonLines[i].Visible = false
+                            end
+                        end
+                    else
+                        for _, l in ipairs(esp.SkeletonLines) do l.Visible = false end
+                    end
+                end
+            end
+        end
+    end
+end
+
+--========================================================--
+--                   RAIO-X (XRAY)                       --
+--========================================================--
+
+local function ApplyXray(enabled)
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and not Players:GetPlayerFromCharacter(obj.Parent) then
+            obj.Transparency = enabled and 0.7 or 0
+        end
+    end
+end
+
+--========================================================--
+--                      AIMBOT (universal + FOV RGB)      --
+--========================================================--
+
+local function createFOV()
+    if FOVCircle then pcall(function() FOVCircle:Remove() end) end
+    FOVCircle = DrawingLib.new("Circle")
+    FOVCircle.Visible = false
+    FOVCircle.Radius = FOVSize
+    FOVCircle.Color = Color3.fromRGB(255, 255, 255) -- cor inicial, depois muda
+    FOVCircle.Thickness = 2
+    FOVCircle.Filled = false
+    FOVCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+end
+
+local function AimbotFunction()
+    if not AimbotEnabled then
+        if FOVCircle then FOVCircle.Visible = false end
+        return
+    end
+    if not FOVCircle then createFOV() end
+    if FOVCircle then
+        FOVCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+        FOVCircle.Radius = FOVSize
+        FOVCircle.Visible = true
+        -- Cor RGB dinâmica
+        FOVCircle.Color = Color3.fromHSV((tick() % 5) / 5, 1, 1)
+    end
+
+    local closestPlayer = nil
+    local shortestDist = math.huge
+    for _, targetPlayer in ipairs(Players:GetPlayers()) do
+        if targetPlayer ~= Player and targetPlayer.Character then
+            local character = targetPlayer.Character
+            local head = character:FindFirstChild("Head")
+            local root = character:FindFirstChild("HumanoidRootPart")
+            local targetPart = head or root
+            if targetPart and IsEnemy(targetPlayer) then
+                local screenPos, onScreen = Camera:WorldToViewportPoint(targetPart.Position)
+                if onScreen then
+                    local distFromCenter = (Vector2.new(screenPos.X, screenPos.Y) - Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)).Magnitude
+                    if distFromCenter <= FOVSize and distFromCenter < shortestDist then
+                        -- Raycast para verificar visibilidade
+                        local cameraPos = Camera.CFrame.Position
+                        local targetPos = targetPart.Position
+                        local rayParams = RaycastParams.new()
+                        rayParams.FilterType = Enum.RaycastFilterType.Exclude
+                        rayParams.FilterDescendantsInstances = {Player.Character}
+                        local rayResult = Workspace:Raycast(cameraPos, targetPos - cameraPos, rayParams)
+                        if not rayResult or (rayResult.Instance:IsDescendantOf(character)) then
+                            shortestDist = distFromCenter
+                            closestPlayer = targetPlayer
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    if closestPlayer and closestPlayer.Character then
+        local targetPart = closestPlayer.Character:FindFirstChild("Head") or closestPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if targetPart then
+            Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, targetPart.Position)
+        end
+    end
+end
+
+RunService.RenderStepped:Connect(AimbotFunction)
+
+--========================================================--
+--                 SISTEMA DE FARM AUTOMÁTICO            --
+--========================================================--
+
+local function FireClick()
+    pcall(function()
+        VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
+        task.wait(0.05)
+        VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1)
+    end)
+end
+
+local function IsAimingAt(targetCharacter)
+    if not targetCharacter or not targetCharacter:FindFirstChild("Head") then return false end
+    local cameraPos = Camera.CFrame.Position
+    local targetPos = targetCharacter.Head.Position
+    local rayParams = RaycastParams.new()
+    rayParams.FilterType = Enum.RaycastFilterType.Exclude
+    rayParams.FilterDescendantsInstances = {Player.Character}
+    local rayResult = Workspace:Raycast(cameraPos, targetPos - cameraPos, rayParams)
+    if rayResult then
+        return rayResult.Instance:IsDescendantOf(targetCharacter)
+    end
+    return true
+end
+
+local function TeleportTo(targetCharacter)
+    if not targetCharacter or not targetCharacter:FindFirstChild("HumanoidRootPart") then return end
+    local root = targetCharacter.HumanoidRootPart
+    local targetPos = root.Position + Vector3.new(0, 3, 0)
+    local myChar = Player.Character
+    if myChar and myChar:FindFirstChild("HumanoidRootPart") then
+        myChar:SetPrimaryPartCFrame(CFrame.new(targetPos))
+    end
+end
+
+local function FarmLoop()
+    while GetState("Farm Automático") do
+        task.wait(0.2)
+
+        local closestEnemy = nil
+        local shortestDistance = math.huge
+
+        -- Encontrar inimigo mais próximo (estrito)
+        for _, targetPlayer in ipairs(Players:GetPlayers()) do
+            if targetPlayer ~= Player and IsEnemyStrict(targetPlayer) then
+                local character = targetPlayer.Character
+                if character and character.Parent == Workspace then
+                    local root = character:FindFirstChild("HumanoidRootPart")
+                    local humanoid = character:FindFirstChildOfClass("Humanoid")
+                    if root and humanoid and humanoid.Health > 0 then
+                        local myRoot = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
+                        if myRoot then
+                            local distance = (root.Position - myRoot.Position).Magnitude
+                            if distance < shortestDistance then
+                                shortestDistance = distance
+                                closestEnemy = targetPlayer
+                            end
+                        end
+                    end
+                end
+            end
+        end
+
+        if closestEnemy and closestEnemy.Character and closestEnemy.Character:FindFirstChild("HumanoidRootPart") then
+            local targetCharacter = closestEnemy.Character
+            local targetHumanoid = targetCharacter:FindFirstChildOfClass("Humanoid")
+
+            if targetHumanoid and targetHumanoid.Health > 0 then
+                if GetState("Teleporte para Inimigo") then
+                    TeleportTo(targetCharacter)
+                    task.wait(0.1)
+                end
+
+                if GetState("Click Automático") then
+                    local rootPos = targetCharacter.HumanoidRootPart.Position
+                    Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, rootPos)
+                    if IsAimingAt(targetCharacter) then
+                        FireClick()
+                    end
+                else
+                    local rootPos = targetCharacter.HumanoidRootPart.Position
+                    Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, rootPos)
+                end
+
+                local killTimeout = 0
+                while GetState("Farm Automático") and targetHumanoid.Health > 0 and killTimeout < 5 do
+                    task.wait(0.1)
+                    killTimeout = killTimeout + 0.1
+                end
+
+                task.wait(0.5)
+            end
+        end
+    end
+end
+
+local function StartFarmIfNeeded()
+    if FarmConnection then
+        FarmConnection:Disconnect()
+        FarmConnection = nil
+    end
+    if GetState("Farm Automático") then
+        FarmConnection = RunService.Heartbeat:Connect(FarmLoop)
+    end
+end
+
+--========================================================--
+--             AÇÕES DE TOGGLES (integradas)             --
+--========================================================--
+
+local ToggleActions = {}
+
+local function ApplyToggle(name, enabled)
+    if name == "Master Mode" then
+        local char = Player.Character
+        if char and char:FindFirstChildOfClass("Humanoid") then
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if enabled then
+                hum.MaxHealth = math.huge
+                hum.Health = math.huge
+            else
+                hum.MaxHealth = 100
+                hum.Health = 100
+            end
+        end
+    elseif name == "Performance" then
+        if enabled then
+            Lighting.GlobalShadows = false
+            Lighting.FogEnd = 100
+            if Workspace:FindFirstChildOfClass("Terrain") then
+                Workspace:FindFirstChildOfClass("Terrain").WaterWaveSize = 0
+            end
+            pcall(function() settings().Rendering.QualityLevel = 1 end)
+        else
+            Lighting.GlobalShadows = true
+            Lighting.FogEnd = 100000
+            if Workspace:FindFirstChildOfClass("Terrain") then
+                Workspace:FindFirstChildOfClass("Terrain").WaterWaveSize = 0.2
+            end
+            pcall(function() settings().Rendering.QualityLevel = 10 end)
+        end
+    elseif name == "Notifications" then
+        -- feedback
+    elseif name == "ESP LINE" or name == "ESP BOX" or name == "ESP VIDA (BARRA)" or name == "ESP SKELETO" or name == "ESP NOME" or name == "RGB GERAL" then
+        -- Apenas altera estado; UpdateESP renderiza
+    elseif name == "RAIO-X" then
+        ApplyXray(enabled)
+    elseif name == "Aim Preview" then
+        AimbotEnabled = enabled
+        if not enabled and FOVCircle then FOVCircle.Visible = false end
+    elseif name == "Crosshair Preview" then
+        -- opcional
+    elseif name == "Speed Preview" then
+        local char = Player.Character
+        if char and char:FindFirstChildOfClass("Humanoid") then
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            hum.WalkSpeed = enabled and 50 or 16
+        end
+    elseif name == "Jump Preview" then
+        local char = Player.Character
+        if char and char:FindFirstChildOfClass("Humanoid") then
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            hum.JumpPower = enabled and 100 or 50
+        end
+    elseif name == "Movement Preview" then
+        if enabled then
+            NoclipConnection = RunService.Stepped:Connect(function()
+                if Player.Character then
+                    for _, part in ipairs(Player.Character:GetDescendants()) do
+                        if part:IsA("BasePart") then part.CanCollide = false end
+                    end
+                end
+            end)
+        else
+            if NoclipConnection then NoclipConnection:Disconnect(); NoclipConnection = nil end
+            if Player.Character then
+                for _, part in ipairs(Player.Character:GetDescendants()) do
+                    if part:IsA("BasePart") then part.CanCollide = true end
+                end
+            end
+        end
+    elseif name == "Brightness" then
+        Lighting.Brightness = enabled and 2 or 1
+    elseif name == "Night Mode" then
+        if enabled then
+            Lighting.Brightness = 0.1
+            Lighting.ClockTime = 0
+            Lighting.Ambient = Color3.new(0, 0, 0)
+        else
+            Lighting.Brightness = 1
+            Lighting.ClockTime = 14
+            Lighting.Ambient = Color3.new(1, 1, 1)
+        end
+    elseif name == "RGB Interface" then
+        if enabled then
+            RGBConnection = RunService.RenderStepped:Connect(function()
+                local hue = tick() % 5 / 5
+                local color = Color3.fromHSV(hue, 1, 1)
+                PanelStroke.Color = color
+                BubbleStroke.Color = color
+                Title.TextColor3 = color
+            end)
+        else
+            if RGBConnection then RGBConnection:Disconnect(); RGBConnection = nil end
+            PanelStroke.Color = Color3.fromRGB(30, 140, 255)
+            BubbleStroke.Color = Color3.fromRGB(90, 190, 255)
+            Title.TextColor3 = Color3.fromRGB(80, 180, 255)
+        end
+    elseif name == "Farm Automático" then
+        StartFarmIfNeeded()
+    elseif name == "Click Automático" then
+        -- verificado no loop
+    elseif name == "Teleporte para Inimigo" then
+        -- verificado no loop
+    end
+end
+
+for _, action in ipairs({
+    "Master Mode", "Performance", "Notifications",
+    "ESP LINE", "ESP BOX", "ESP VIDA (BARRA)", "ESP SKELETO", "ESP NOME", "RAIO-X", "RGB GERAL",
+    "Aim Preview", "Crosshair Preview", "Speed Preview", "Jump Preview",
+    "Movement Preview", "Brightness", "Night Mode", "RGB Interface",
+    "Farm Automático", "Click Automático", "Teleporte para Inimigo"
+}) do
+    ToggleActions[action] = ApplyToggle
+end
+
+--========================================================--
+--                   CRIAÇÃO DE TOGGLES                 --
+--========================================================--
+
+local function CreateToggle(Name, Y)
+    local Button = Instance.new("TextButton")
+    Button.Parent = Content
+    Button.Size = UDim2.new(1, -20, 0, 35)
+    Button.Position = UDim2.fromOffset(10, Y)
+    Instance.new("UICorner", Button).CornerRadius = UDim.new(0, 8)
+
+    local function UpdateButton()
+        local Enabled = GetState(Name)
+        if Enabled then
+            Button.BackgroundColor3 = Color3.fromRGB(20, 110, 230)
+            Button.Text = Name .. "    [ ON ]"
+        else
+            Button.BackgroundColor3 = Color3.fromRGB(25, 29, 42)
+            Button.Text = Name .. "    [ OFF ]"
+        end
+        Button.TextColor3 = Color3.new(1, 1, 1)
+        Button.TextSize = 13
+        Button.Font = Enum.Font.GothamMedium
+    end
+    UpdateButton()
+
+    Button.MouseButton1Click:Connect(function()
+        local newState = ChangeState(Name)
+        UpdateButton()
+        if ToggleActions[Name] then
+            ToggleActions[Name](Name, newState)
+        end
+    end)
+end
+
+--========================================================--
+--                SLIDER DE FOV (COMBAT)                 --
+--========================================================--
+
+local function CreateFOVSlider()
+    local label = Instance.new("TextLabel")
+    label.Parent = Content
+    label.Size = UDim2.new(1, -20, 0, 25)
+    label.Position = UDim2.fromOffset(10, 120)
+    label.BackgroundTransparency = 1
+    label.Text = "Tamanho do FOV: " .. FOVSize
+    label.TextColor3 = Color3.fromRGB(220, 220, 230)
+    label.TextSize = 13
+    label.Font = Enum.Font.GothamMedium
+    label.TextXAlignment = Enum.TextXAlignment.Left
+
+    local slider = Instance.new("TextButton")
+    slider.Parent = Content
+    slider.Size = UDim2.new(1, -20, 0, 30)
+    slider.Position = UDim2.fromOffset(10, 150)
+    slider.BackgroundColor3 = Color3.fromRGB(40, 44, 60)
+    slider.Text = ""
+    Instance.new("UICorner", slider).CornerRadius = UDim.new(0, 6)
+
+    local function UpdateFromInput(input)
+        local relX = (input.Position.X - slider.AbsolutePosition.X) / slider.AbsoluteSize.X
+        FOVSize = math.clamp(math.floor(relX * 500), 50, 500)
+        label.Text = "Tamanho do FOV: " .. FOVSize
+        if FOVCircle then FOVCircle.Radius = FOVSize end
+    end
+
+    slider.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            UpdateFromInput(input)
+        end
+    end)
+    slider.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            if UIS:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
+                UpdateFromInput(input)
+            end
+        end
+    end)
+end
+
+--========================================================--
+--                     MOSTRAR ABA                       --
+--========================================================--
+
+local function ShowTab(Tab)
+    ClearContent()
+    local Header = Instance.new("TextLabel")
+    Header.Parent = Content
+    Header.Size = UDim2.new(1, -20, 0, 30)
+    Header.Position = UDim2.fromOffset(10, 5)
+    Header.BackgroundTransparency = 1
+    Header.Text = GetTabName(Tab)
+    Header.TextColor3 = Color3.fromRGB(80, 180, 255)
+    Header.TextSize = 18
+    Header.Font = Enum.Font.GothamBold
+    Header.TextXAlignment = Enum.TextXAlignment.Left
+
+    if Tab == "MAIN" then
+        CreateToggle("Master Mode", 40)
+        CreateToggle("Performance", 80)
+        CreateToggle("Notifications", 120)
+    elseif Tab == "ESP" then
+        CreateToggle("ESP LINE", 40)
+        CreateToggle("ESP BOX", 80)
+        CreateToggle("ESP VIDA (BARRA)", 120)
+        CreateToggle("ESP SKELETO", 160)
+        CreateToggle("ESP NOME", 200)
+        CreateToggle("RAIO-X", 240)
+        CreateToggle("RGB GERAL", 280)
+    elseif Tab == "COMBAT" then
+        CreateToggle("Aim Preview", 40)
+        CreateToggle("Crosshair Preview", 80)
+        CreateFOVSlider()
+    elseif Tab == "FARM" then
+        CreateToggle("Farm Automático", 40)
+        CreateToggle("Click Automático", 80)
+        CreateToggle("Teleporte para Inimigo", 120)
+    elseif Tab == "PLAYER" then
+        CreateToggle("Speed Preview", 40)
+        CreateToggle("Jump Preview", 80)
+        CreateToggle("Movement Preview", 120)
+    elseif Tab == "VISUAL" then
+        CreateToggle("Brightness", 40)
+        CreateToggle("Night Mode", 80)
+        CreateToggle("RGB Interface", 120)
+    elseif Tab == "SETTINGS" then
+        local LangTitle = Instance.new("TextLabel")
+        LangTitle.Parent = Content
+        LangTitle.Size = UDim2.new(1, -20, 0, 30)
+        LangTitle.Position = UDim2.fromOffset(10, 40)
+        LangTitle.BackgroundTransparency = 1
+        LangTitle.Text = "🌐 LANGUAGE / IDIOMA"
+        LangTitle.TextColor3 = Color3.fromRGB(220, 220, 230)
+        LangTitle.TextSize = 14
+        LangTitle.Font = Enum.Font.GothamBold
+        LangTitle.TextXAlignment = Enum.TextXAlignment.Left
+
+        local Y = 75
+        for LanguageName in pairs(Languages) do
+            local LangButton = Instance.new("TextButton")
+            LangButton.Parent = Content
+            LangButton.Size = UDim2.new(1, -20, 0, 35)
+            LangButton.Position = UDim2.fromOffset(10, Y)
+            LangButton.Text = LanguageName
+            LangButton.TextSize = 13
+            LangButton.Font = Enum.Font.GothamMedium
+            Instance.new("UICorner", LangButton).CornerRadius = UDim.new(0, 7)
+
+            if LanguageName == CurrentLanguage then
+                LangButton.BackgroundColor3 = Color3.fromRGB(20, 110, 230)
+                LangButton.TextColor3 = Color3.new(1, 1, 1)
+            else
+                LangButton.BackgroundColor3 = Color3.fromRGB(25, 29, 42)
+                LangButton.TextColor3 = Color3.fromRGB(220, 220, 230)
+            end
+
+            LangButton.MouseButton1Click:Connect(function()
+                CurrentLanguage = LanguageName
+                for _, btn in ipairs(TabFrame:GetChildren()) do
+                    if btn:IsA("TextButton") then
+                        local tabAttr = btn:GetAttribute("Tab")
+                        if tabAttr then btn.Text = GetTabName(tabAttr) end
+                    end
+                end
+                ShowTab("SETTINGS")
+            end)
+            Y = Y + 40
+        end
+    elseif Tab == "DISCORD" then
+        local DiscordTitle = Instance.new("TextLabel")
+        DiscordTitle.Parent = Content
+        DiscordTitle.Size = UDim2.new(1, -20, 0, 45)
+        DiscordTitle.Position = UDim2.fromOffset(10, 45)
+        DiscordTitle.BackgroundTransparency = 1
+        DiscordTitle.Text = "DISCORD"
+        DiscordTitle.TextColor3 = Color3.fromRGB(90, 160, 255)
+        DiscordTitle.TextSize = 21
+        DiscordTitle.Font = Enum.Font.GothamBold
+
+        local DiscordInfo = Instance.new("TextLabel")
+        DiscordInfo.Parent = Content
+        DiscordInfo.Size = UDim2.new(1, -30, 0, 60)
+        DiscordInfo.Position = UDim2.fromOffset(15, 90)
+        DiscordInfo.BackgroundTransparency = 1
+        DiscordInfo.Text = "INFINITY BLOX • Servidor oficial"
+        DiscordInfo.TextColor3 = Color3.fromRGB(210, 210, 220)
+        DiscordInfo.TextSize = 14
+        DiscordInfo.Font = Enum.Font.Gotham
+        DiscordInfo.TextWrapped = true
+
+        local DiscordButton = Instance.new("TextButton")
+        DiscordButton.Parent = Content
+        DiscordButton.Size = UDim2.new(1, -30, 0, 48)
+        DiscordButton.Position = UDim2.fromOffset(15, 155)
+        DiscordButton.BackgroundColor3 = Color3.fromRGB(70, 90, 220)
+        DiscordButton.Text = "DISCORD • PHOENIX"
+        DiscordButton.TextColor3 = Color3.new(1, 1, 1)
+        DiscordButton.TextSize = 13
+        DiscordButton.Font = Enum.Font.GothamBold
+        Instance.new("UICorner", DiscordButton).CornerRadius = UDim.new(0, 9)
+        DiscordButton.MouseButton1Click:Connect(function()
+            DiscordInfo.Text = "discord.gg/rwwdKnRWa"
+        end)
+
+        local Credits = Instance.new("TextLabel")
+        Credits.Parent = Content
+        Credits.Size = UDim2.new(1, -20, 0, 55)
+        Credits.Position = UDim2.fromOffset(10, 220)
+        Credits.BackgroundTransparency = 1
+        Credits.Text = "INFINITY BLOX fornecedor servidor\nScript criado por lkzinn777"
+        Credits.TextColor3 = Color3.fromRGB(140, 145, 160)
+        Credits.TextSize = 12
+        Credits.Font = Enum.Font.GothamMedium
+        Credits.TextWrapped = true
+    end
+end
+
+--========================================================--
+--                    CRIAR ABAS                         --
+--========================================================--
+
+for _, Tab in ipairs(TabNames) do
+    local Button = Instance.new("TextButton")
+    Button.Parent = TabFrame
+    Button.Size = UDim2.fromOffset(120, 30)
+    Button.BackgroundColor3 = Color3.fromRGB(22, 25, 37)
+    Button.Text = GetTabName(Tab)
+    Button.TextColor3 = Color3.fromRGB(220, 220, 230)
+    Button.TextSize = 12
+    Button.Font = Enum.Font.GothamBold
+    Button:SetAttribute("Tab", Tab)
+    Instance.new("UICorner", Button).CornerRadius = UDim.new(0, 7)
+    Button.MouseButton1Click:Connect(function()
+        ShowTab(Tab)
+    end)
+end
+
+ShowTab("MAIN")
+
+--========================================================--
+--                  ABRIR / FECHAR                       --
+--========================================================--
+
+Bubble.MouseButton1Click:Connect(function()
+    Panel.Visible = not Panel.Visible
+    Bubble.Visible = not Panel.Visible
+end)
+
+Close.MouseButton1Click:Connect(function()
+    Panel.Visible = false
+    Bubble.Visible = true
+end)
+
+--========================================================--
+--                    ARRASTAR PAINEL                    --
+--========================================================--
+
+local Dragging = false
+local DragStart, StartPosition = nil, nil
+
+Title.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        Dragging = true
+        DragStart = input.Position
+        StartPosition = Panel.Position
+    end
+end)
+
+UIS.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        Dragging = false
+    end
+end)
+
+UIS.InputChanged:Connect(function(input)
+    if Dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - DragStart
+        Panel.Position = UDim2.new(
+            StartPosition.X.Scale,
+            StartPosition.X.Offset + delta.X,
+            StartPosition.Y.Scale,
+            StartPosition.Y.Offset + delta.Y
+        )
+    end
+end)
+
+--========================================================--
+--           INICIALIZAÇÃO DOS SISTEMAS DE ESP           --
+--========================================================--
+
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function()
+        task.wait(1)
+        CreateESPForPlayer(player)
+    end)
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+    RemoveESPForPlayer(player)
+end)
+
+for _, player in ipairs(Players:GetPlayers()) do
+    if player ~= Player then
+        player.CharacterAdded:Connect(function()
+            task.wait(1)
+            CreateESPForPlayer(player)
+        end)
+        if player.Character then
+            task.spawn(function()
+                CreateESPForPlayer(player)
+            end)
+        end
+    end
+end
+
+RunService.RenderStepped:Connect(function()
+    UpdateESP()
+    -- AimbotFunction já está conectado separadamente
+end)
+
+print("MASTER HUB EXECUTADO")
+print("Aimbot universal e FOV RGB ativados.")
